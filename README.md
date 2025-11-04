@@ -198,19 +198,69 @@ docker run -it --rm <image-name>
 
 # 🚀 6. Running the Project
 
+## Start the FastAPI Calculator Application
+
 - **Without Docker**:
 
 ```bash
 python main.py
 ```
 
-(or update this if the main script is different.)
+The application will start on `http://127.0.0.1:8000`
+
+Open your browser and navigate to `http://127.0.0.1:8000` to use the calculator.
 
 - **With Docker**:
 
 ```bash
-docker run -it --rm <image-name>
+docker-compose up
 ```
+
+## Running Tests
+
+This project includes comprehensive test coverage:
+
+### Unit Tests
+Test individual arithmetic operations:
+```bash
+pytest tests/unit/ -v
+```
+
+### Integration Tests
+Test API endpoints:
+```bash
+pytest tests/integration/ -v
+```
+
+### End-to-End Tests
+Test with Playwright browser automation:
+```bash
+# First install Playwright browsers
+playwright install chromium
+
+# Then run e2e tests
+pytest tests/e2e/ -v -m e2e
+```
+
+### Run All Tests
+```bash
+pytest tests/ -v
+```
+
+### Run Tests with Coverage
+```bash
+pytest --cov=app --cov-report=html
+```
+
+## Continuous Integration
+
+This project uses GitHub Actions for CI/CD. The workflow automatically runs:
+- Unit tests
+- Integration tests
+- End-to-end tests
+- Coverage reports
+
+View the workflow configuration in `.github/workflows/ci.yml`
 
 ---
 

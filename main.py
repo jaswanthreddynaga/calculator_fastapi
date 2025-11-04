@@ -9,9 +9,14 @@ from app.operations import add, subtract, multiply, divide  # Ensure correct imp
 import uvicorn
 import logging
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
+# Setup logging with detailed format
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 logger = logging.getLogger(__name__)
+logger.info("FastAPI Calculator application starting up...")
 
 app = FastAPI()
 
@@ -61,6 +66,7 @@ async def read_root(request: Request):
     """
     Serve the index.html template.
     """
+    logger.info(f"Serving index page to {request.client.host if request.client else 'unknown'}")
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/add", response_model=OperationResponse, responses={400: {"model": ErrorResponse}})
@@ -68,11 +74,13 @@ async def add_route(operation: OperationRequest):
     """
     Add two numbers.
     """
+    logger.info(f"Received add request: a={operation.a}, b={operation.b}")
     try:
         result = add(operation.a, operation.b)
+        logger.info(f"Add operation successful: {operation.a} + {operation.b} = {result}")
         return OperationResponse(result=result)
     except Exception as e:
-        logger.error(f"Add Operation Error: {str(e)}")
+        logger.error(f"Add Operation Error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/subtract", response_model=OperationResponse, responses={400: {"model": ErrorResponse}})
@@ -80,11 +88,13 @@ async def subtract_route(operation: OperationRequest):
     """
     Subtract two numbers.
     """
+    logger.info(f"Received subtract request: a={operation.a}, b={operation.b}")
     try:
         result = subtract(operation.a, operation.b)
+        logger.info(f"Subtract operation successful: {operation.a} - {operation.b} = {result}")
         return OperationResponse(result=result)
     except Exception as e:
-        logger.error(f"Subtract Operation Error: {str(e)}")
+        logger.error(f"Subtract Operation Error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/multiply", response_model=OperationResponse, responses={400: {"model": ErrorResponse}})
@@ -92,11 +102,13 @@ async def multiply_route(operation: OperationRequest):
     """
     Multiply two numbers.
     """
+    logger.info(f"Received multiply request: a={operation.a}, b={operation.b}")
     try:
         result = multiply(operation.a, operation.b)
+        logger.info(f"Multiply operation successful: {operation.a} * {operation.b} = {result}")
         return OperationResponse(result=result)
     except Exception as e:
-        logger.error(f"Multiply Operation Error: {str(e)}")
+        logger.error(f"Multiply Operation Error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/divide", response_model=OperationResponse, responses={400: {"model": ErrorResponse}})
@@ -104,15 +116,18 @@ async def divide_route(operation: OperationRequest):
     """
     Divide two numbers.
     """
+    logger.info(f"Received divide request: a={operation.a}, b={operation.b}")
     try:
         result = divide(operation.a, operation.b)
+        logger.info(f"Divide operation successful: {operation.a} / {operation.b} = {result}")
         return OperationResponse(result=result)
     except ValueError as e:
-        logger.error(f"Divide Operation Error: {str(e)}")
+        logger.error(f"Divide Operation Error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Divide Operation Internal Error: {str(e)}")
+        logger.error(f"Divide Operation Internal Error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 if __name__ == "__main__":
+    logger.info("Starting FastAPI server on http://127.0.0.1:8000")
     uvicorn.run(app, host="127.0.0.1", port=8000)
