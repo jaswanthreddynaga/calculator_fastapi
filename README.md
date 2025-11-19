@@ -264,6 +264,72 @@ View the workflow configuration in `.github/workflows/ci.yml`
 
 ---
 
+## 🗄️ Database-Backed Tests
+
+Integration tests for the secure user model use a real PostgreSQL database.
+
+### Start Postgres locally
+
+```bash
+docker-compose up
+```
+
+This starts:
+- The FastAPI app on `http://localhost:8000`
+- PostgreSQL on `localhost:5432` (DB: `fastapi_db`, user: `postgres`, password: `mypassword`)
+
+### Run database-backed tests
+
+Run all integration tests (including user + calculator API tests):
+
+```bash
+pytest tests/integration/ -v
+```
+
+Run only the new user-related integration tests:
+
+```bash
+pytest tests/integration/test_user_model_db.py -v
+pytest tests/integration/test_users_api.py -v
+```
+
+Make sure Docker/Postgres is running before executing these tests.
+
+---
+
+## 🐳 Docker Hub Image
+
+A production-ready Docker image for this application is built and pushed
+automatically by GitHub Actions when tests pass.
+
+- Docker Hub repository: `jaswanth465/calculator_fastapi`
+- Link: https://hub.docker.com/r/jaswanth465/calculator_fastapi
+
+To pull and run the latest image:
+
+```bash
+docker pull jaswanth465/calculator_fastapi:latest
+docker run -p 8000:8000 jaswanth465/calculator_fastapi:latest
+```
+
+Then open `http://localhost:8000` in your browser.
+
+---
+
+## 📝 Reflection (Summary)
+
+See `REFLECTION.md` for a more detailed write-up. Suggested prompts:
+
+- What did you learn about modeling users securely with SQLAlchemy?
+- How did Pydantic help with validating and serializing user data?
+- What did you learn about password hashing and verification?
+- How did GitHub Actions and Docker Hub help automate testing and deployment?
+- What challenges did you face, and how did you resolve them?
+
+Use these bullets as a guide when completing your reflection.
+
+---
+
 # 📝 7. Submission Instructions
 
 After finishing your work:

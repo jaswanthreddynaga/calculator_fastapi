@@ -37,3 +37,6 @@ tomlkit==0.13.2
 typing_extensions==4.12.2
 urllib3==2.2.3
 uvicorn==0.32.0
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.10
+passlib[bcrypt]==1.7.4

@@ -1,11 +1,17 @@
 # main.py
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field, field_validator  # Use @validator for Pydantic 1.x
 from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 from app.operations import add, subtract, multiply, divide  # Ensure correct import path
+from app.database import Base, engine, get_db
+from app.models import User
+from app.schemas import UserCreate, UserRead
+from app.security import hash_password
 import uvicorn
 import logging
 
@@ -17,6 +23,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 logger.info("FastAPI Calculator application starting up...")
+
+# Create database tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -127,6 +136,32 @@ async def divide_route(operation: OperationRequest):
     except Exception as e:
         logger.error(f"Divide Operation Internal Error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@app.post("/users", response_model=UserRead)
+async def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
+    hashed_password = hash_password(user_in.password)
+    user = User(
+        username=user_in.username,
+        email=user_in.email,
+        password_hash=hashed_password,
+    )
+    db.add(user)
+    try:
+        db.commit()
+        db.refresh(user)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Username or email already exists")
+    return user
+
+
+@app.get("/users/{user_id}", response_model=UserRead)
+async def read_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 if __name__ == "__main__":
     logger.info("Starting FastAPI server on http://127.0.0.1:8000")
