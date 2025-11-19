@@ -60,10 +60,12 @@ def test_create_user_duplicate_username_returns_400(client):
         },
     )
     assert second.status_code == 400
-    assert "already exists" in second.json()["detail"]
+    body = second.json()
+    assert "error" in body
+    assert "already exists" in body["error"]
 
 
-def test_create_user_invalid_email_returns_422(client):
+def test_create_user_invalid_email_returns_400(client):
     _clear_users_table()
     response = client.post(
         "/users",
@@ -73,4 +75,7 @@ def test_create_user_invalid_email_returns_422(client):
             "password": "password123",
         },
     )
-    assert response.status_code == 422
+    assert response.status_code == 400
+    body = response.json()
+    assert "error" in body
+    assert "email" in body["error"]
