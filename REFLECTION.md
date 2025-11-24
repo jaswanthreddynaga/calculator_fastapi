@@ -98,3 +98,16 @@ introduce environment-specific settings for production, and expand the test
 suite with more edge cases. Overall, this assignment gave me hands-on practice
 with building a small but realistic backend service and automating its testing
 and deployment.
+
+## 7. Calculation Model and Factory Pattern
+
+In this module, I extended the application by adding a `Calculation` model and implementing a Factory pattern for operations.
+
+### Calculation Model
+I defined a `Calculation` model using SQLAlchemy to store calculation history. This involved creating a new table with fields for operands (`a`, `b`), operation `type`, `result`, and a foreign key to the `User` model. This allows tracking which user performed which calculation.
+
+### Factory Pattern
+I implemented the Factory Method design pattern to handle the creation of calculation operations (`Add`, `Subtract`, `Multiply`, `Divide`). This promotes extensibility; if I want to add a new operation like `Power` or `Modulus`, I can simply create a new class and update the factory without modifying the existing operation logic. This separation of concerns makes the code cleaner and easier to maintain.
+
+### Testing
+I added comprehensive unit tests for the factory and Pydantic schemas, ensuring that validation rules (like no division by zero) work as expected. I also added integration tests to verify that calculations are correctly stored in the database and linked to the user.
