@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
 
 
 class UserBase(BaseModel):
@@ -20,7 +21,19 @@ class UserRead(UserBase):
         from_attributes = True
 
 
-from pydantic import BaseModel, EmailStr, field_validator, model_validator
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
 
 class CalculationBase(BaseModel):
     a: int

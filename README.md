@@ -239,8 +239,27 @@ Test with Playwright browser automation:
 playwright install chromium
 
 # Then run e2e tests
-pytest tests/e2e/ -v -m e2e
+pytest tests/e2e/ -v
 ```
+
+## Frontend Application
+
+The application includes a frontend for user registration and login.
+
+### Accessing the Frontend
+1. Start the server:
+   ```bash
+   python main.py
+   ```
+2. Open your browser and navigate to:
+   - Registration: `http://127.0.0.1:8000/register`
+   - Login: `http://127.0.0.1:8000/login`
+   - Calculator: `http://127.0.0.1:8000/`
+
+### Features
+- **Client-Side Validation**: Forms check for valid email formats and password length.
+- **JWT Authentication**: Successful login stores a JWT token for secure access.
+- **Responsive Design**: Modern, dark-themed UI.
 
 ### Run All Tests
 ```bash

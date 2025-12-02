@@ -10,8 +10,9 @@ from sqlalchemy.orm import Session
 from app.operations import add, subtract, multiply, divide  # Ensure correct import path
 from app.database import Base, engine, get_db
 from app.models import User, Calculation
-from app.schemas import UserCreate, UserRead, CalculationCreate, CalculationRead
-from app.security import hash_password, verify_password
+from app.schemas import UserCreate, UserRead, CalculationCreate, CalculationRead, Token, UserLogin
+from app.security import hash_password, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from datetime import timedelta
 import uvicorn
 import logging
 
@@ -161,12 +162,27 @@ async def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
     return user
 
 
-@app.post("/users/login")
-async def login_user(user_in: UserCreate, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == user_in.username).first()
+@app.get("/register")
+async def register_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+@app.get("/login")
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@app.post("/users/login", response_model=Token)
+async def login_user(user_in: UserLogin, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == user_in.email).first()
     if not user or not verify_password(user_in.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return {"message": "Login successful", "user_id": user.id}
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @app.get("/users/{user_id}", response_model=UserRead)

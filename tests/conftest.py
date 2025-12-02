@@ -38,8 +38,8 @@ def fastapi_server():
     # Start FastAPI app using uvicorn for better compatibility
     fastapi_process = subprocess.Popen(
         [sys.executable, '-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8000'],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        # stdout=subprocess.PIPE,
+        # stderr=subprocess.PIPE
     )
     
     # Define the URL to check if the server is up

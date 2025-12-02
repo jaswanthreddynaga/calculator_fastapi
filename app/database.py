@@ -8,7 +8,11 @@ DATABASE_URL = os.getenv(
     "postgresql+psycopg2://postgres:mypassword@localhost:5432/fastapi_db",
 )
 
-engine = create_engine(DATABASE_URL, echo=False, future=True)
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+
+engine = create_engine(DATABASE_URL, echo=False, future=True, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
