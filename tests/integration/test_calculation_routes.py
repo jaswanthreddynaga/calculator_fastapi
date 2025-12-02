@@ -19,11 +19,12 @@ def setup_database():
 
 def test_create_calculation(setup_database):
     # Get user id
-    login_res = client.post(
-        "/users/login",
-        json={"username": "calcuser", "email": "calc@example.com", "password": "password123"},
+    # Register user to get id
+    reg_res = client.post(
+        "/users/register",
+        json={"username": "calcuser_create", "email": "calc_create@example.com", "password": "password123"},
     )
-    user_id = login_res.json()["user_id"]
+    user_id = reg_res.json()["id"]
 
     response = client.post(
         "/calculations",
@@ -44,11 +45,12 @@ def test_read_calculations(setup_database):
 
 def test_read_calculation_by_id(setup_database):
     # Get user id
-    login_res = client.post(
-        "/users/login",
-        json={"username": "calcuser", "email": "calc@example.com", "password": "password123"},
+    # Register user to get id
+    reg_res = client.post(
+        "/users/register",
+        json={"username": "calcuser_read", "email": "calc_read@example.com", "password": "password123"},
     )
-    user_id = login_res.json()["user_id"]
+    user_id = reg_res.json()["id"]
     
     # Create a calculation first
     create_res = client.post(
@@ -66,11 +68,12 @@ def test_read_calculation_by_id(setup_database):
 
 def test_update_calculation(setup_database):
     # Get user id
-    login_res = client.post(
-        "/users/login",
-        json={"username": "calcuser", "email": "calc@example.com", "password": "password123"},
+    # Register user to get id
+    reg_res = client.post(
+        "/users/register",
+        json={"username": "calcuser_update", "email": "calc_update@example.com", "password": "password123"},
     )
-    user_id = login_res.json()["user_id"]
+    user_id = reg_res.json()["id"]
     
     # Create a calculation first
     create_res = client.post(
@@ -92,11 +95,12 @@ def test_update_calculation(setup_database):
 
 def test_delete_calculation(setup_database):
     # Get user id
-    login_res = client.post(
-        "/users/login",
-        json={"username": "calcuser", "email": "calc@example.com", "password": "password123"},
+    # Register user to get id
+    reg_res = client.post(
+        "/users/register",
+        json={"username": "calcuser_delete", "email": "calc_delete@example.com", "password": "password123"},
     )
-    user_id = login_res.json()["user_id"]
+    user_id = reg_res.json()["id"]
     
     # Create a calculation first
     create_res = client.post(

@@ -36,8 +36,10 @@ def test_login_user(setup_database):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["message"] == "Login successful"
-    assert "user_id" in data
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
 
 def test_login_invalid_credentials(setup_database):
     response = client.post(
