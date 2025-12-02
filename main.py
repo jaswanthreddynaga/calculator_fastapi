@@ -9,9 +9,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.operations import add, subtract, multiply, divide  # Ensure correct import path
 from app.database import Base, engine, get_db
-from app.models import User
-from app.schemas import UserCreate, UserRead
-from app.security import hash_password
+from app.models import User, Calculation
+from app.schemas import UserCreate, UserRead, CalculationCreate, CalculationRead
+from app.security import hash_password, verify_password
 import uvicorn
 import logging
 
@@ -24,10 +24,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 logger.info("FastAPI Calculator application starting up...")
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create database tables
+    Base.metadata.create_all(bind=engine)
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 # Setup templates directory
 templates = Jinja2Templates(directory="templates")
@@ -138,8 +143,8 @@ async def divide_route(operation: OperationRequest):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@app.post("/users", response_model=UserRead)
-async def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
+@app.post("/users/register", response_model=UserRead)
+async def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
     hashed_password = hash_password(user_in.password)
     user = User(
         username=user_in.username,
@@ -156,12 +161,105 @@ async def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
     return user
 
 
+@app.post("/users/login")
+async def login_user(user_in: UserCreate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == user_in.username).first()
+    if not user or not verify_password(user_in.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    return {"message": "Login successful", "user_id": user.id}
+
+
 @app.get("/users/{user_id}", response_model=UserRead)
 async def read_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+@app.get("/calculations", response_model=list[CalculationRead])
+async def read_calculations(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    calculations = db.query(Calculation).offset(skip).limit(limit).all()
+    return calculations
+
+
+@app.get("/calculations/{calculation_id}", response_model=CalculationRead)
+async def read_calculation(calculation_id: int, db: Session = Depends(get_db)):
+    calculation = db.query(Calculation).filter(Calculation.id == calculation_id).first()
+    if not calculation:
+        raise HTTPException(status_code=404, detail="Calculation not found")
+    return calculation
+
+
+@app.post("/calculations", response_model=CalculationRead)
+async def create_calculation(calculation_in: CalculationCreate, user_id: int, db: Session = Depends(get_db)):
+    # Verify user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    calculation = Calculation(
+        a=calculation_in.a,
+        b=calculation_in.b,
+        type=calculation_in.type,
+        user_id=user_id,
+        result=0 # Placeholder, should be calculated
+    )
+    
+    # Calculate result based on type
+    if calculation.type == "Add":
+        calculation.result = calculation.a + calculation.b
+    elif calculation.type == "Subtract":
+        calculation.result = calculation.a - calculation.b
+    elif calculation.type == "Multiply":
+        calculation.result = calculation.a * calculation.b
+    elif calculation.type == "Divide":
+        if calculation.b == 0:
+             raise HTTPException(status_code=400, detail="Cannot divide by zero")
+        calculation.result = calculation.a // calculation.b # Integer division as per model
+
+    db.add(calculation)
+    db.commit()
+    db.refresh(calculation)
+    return calculation
+
+
+@app.put("/calculations/{calculation_id}", response_model=CalculationRead)
+async def update_calculation(calculation_id: int, calculation_in: CalculationCreate, db: Session = Depends(get_db)):
+    calculation = db.query(Calculation).filter(Calculation.id == calculation_id).first()
+    if not calculation:
+        raise HTTPException(status_code=404, detail="Calculation not found")
+
+    calculation.a = calculation_in.a
+    calculation.b = calculation_in.b
+    calculation.type = calculation_in.type
+    
+    # Recalculate result
+    if calculation.type == "Add":
+        calculation.result = calculation.a + calculation.b
+    elif calculation.type == "Subtract":
+        calculation.result = calculation.a - calculation.b
+    elif calculation.type == "Multiply":
+        calculation.result = calculation.a * calculation.b
+    elif calculation.type == "Divide":
+        if calculation.b == 0:
+             raise HTTPException(status_code=400, detail="Cannot divide by zero")
+        calculation.result = calculation.a // calculation.b
+
+    db.commit()
+    db.refresh(calculation)
+    return calculation
+
+
+@app.delete("/calculations/{calculation_id}")
+async def delete_calculation(calculation_id: int, db: Session = Depends(get_db)):
+    calculation = db.query(Calculation).filter(Calculation.id == calculation_id).first()
+    if not calculation:
+        raise HTTPException(status_code=404, detail="Calculation not found")
+    
+    db.delete(calculation)
+    db.commit()
+    return {"message": "Calculation deleted successfully"}
+
 
 if __name__ == "__main__":
     logger.info("Starting FastAPI server on http://127.0.0.1:8000")
