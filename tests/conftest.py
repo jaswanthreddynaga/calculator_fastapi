@@ -7,8 +7,28 @@ import requests
 import sys
 import os
 
+# Set DATABASE_URL to use SQLite for tests
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import sessionmaker
+from app import database
+
+# Create shared in-memory engine for tests
+test_engine = create_engine(
+    "sqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+# Patch app.database
+database.engine = test_engine
+database.SessionLocal = TestingSessionLocal
 
 @pytest.fixture(scope='session')
 def fastapi_server():

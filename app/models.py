@@ -23,6 +23,7 @@ class Calculation(Base):
     type = Column(String, nullable=False)
     result = Column(Integer, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user = relationship("User", back_populates="calculations")
 

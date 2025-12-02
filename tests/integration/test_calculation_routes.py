@@ -1,36 +1,21 @@
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from app.database import Base, get_db
+from app import database
+from app.models import User, Calculation
 from main import app
 import pytest
-
-# Setup test database
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_calc.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
 
 client = TestClient(app)
 
 @pytest.fixture(scope="module")
 def setup_database():
-    Base.metadata.create_all(bind=engine)
+    database.Base.metadata.create_all(bind=database.engine)
     # Create a test user
     client.post(
         "/users/register",
         json={"username": "calcuser", "email": "calc@example.com", "password": "password123"},
     )
     yield
-    Base.metadata.drop_all(bind=engine)
+    database.Base.metadata.drop_all(bind=database.engine)
 
 def test_create_calculation(setup_database):
     # Get user id
