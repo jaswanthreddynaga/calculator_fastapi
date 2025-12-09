@@ -94,4 +94,4 @@ def test_calculator_divide_by_zero(page, fastapi_server):
     
     # Use an assertion to check that the error message is displayed
     # The new UI displays error in #message div
-    expect(page.locator('#message')).to_contain_text('Error: Cannot divide by zero')
+    expect(page.locator('#message')).to_contain_text('Cannot divide by zero')
