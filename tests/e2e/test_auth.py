@@ -48,7 +48,7 @@ def test_login_success(page: Page, fastapi_server):
     page.wait_for_url("http://127.0.0.1:8000/")
     
     # Verify token is in localStorage
-    token = page.evaluate("localStorage.getItem('token')")
+    token = page.evaluate("localStorage.getItem('access_token')")
     assert token is not None
     assert len(token) > 0
 

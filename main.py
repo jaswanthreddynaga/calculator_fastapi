@@ -11,7 +11,7 @@ from app.operations import add, subtract, multiply, divide  # Ensure correct imp
 from app.database import Base, engine, get_db
 from app.models import User, Calculation
 from app.schemas import UserCreate, UserRead, CalculationCreate, CalculationRead, Token, UserLogin
-from app.security import hash_password, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.security import hash_password, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 from datetime import timedelta
 import uvicorn
 import logging
@@ -193,31 +193,26 @@ async def read_user(user_id: int, db: Session = Depends(get_db)):
     return user
 
 @app.get("/calculations", response_model=list[CalculationRead])
-async def read_calculations(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    calculations = db.query(Calculation).offset(skip).limit(limit).all()
+async def read_calculations(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    calculations = db.query(Calculation).filter(Calculation.user_id == current_user.id).offset(skip).limit(limit).all()
     return calculations
 
 
 @app.get("/calculations/{calculation_id}", response_model=CalculationRead)
-async def read_calculation(calculation_id: int, db: Session = Depends(get_db)):
-    calculation = db.query(Calculation).filter(Calculation.id == calculation_id).first()
+async def read_calculation(calculation_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    calculation = db.query(Calculation).filter(Calculation.id == calculation_id, Calculation.user_id == current_user.id).first()
     if not calculation:
         raise HTTPException(status_code=404, detail="Calculation not found")
     return calculation
 
 
 @app.post("/calculations", response_model=CalculationRead)
-async def create_calculation(calculation_in: CalculationCreate, user_id: int, db: Session = Depends(get_db)):
-    # Verify user exists
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+async def create_calculation(calculation_in: CalculationCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     calculation = Calculation(
         a=calculation_in.a,
         b=calculation_in.b,
         type=calculation_in.type,
-        user_id=user_id,
+        user_id=current_user.id,
         result=0 # Placeholder, should be calculated
     )
     
@@ -240,8 +235,8 @@ async def create_calculation(calculation_in: CalculationCreate, user_id: int, db
 
 
 @app.put("/calculations/{calculation_id}", response_model=CalculationRead)
-async def update_calculation(calculation_id: int, calculation_in: CalculationCreate, db: Session = Depends(get_db)):
-    calculation = db.query(Calculation).filter(Calculation.id == calculation_id).first()
+async def update_calculation(calculation_id: int, calculation_in: CalculationCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    calculation = db.query(Calculation).filter(Calculation.id == calculation_id, Calculation.user_id == current_user.id).first()
     if not calculation:
         raise HTTPException(status_code=404, detail="Calculation not found")
 
@@ -267,8 +262,8 @@ async def update_calculation(calculation_id: int, calculation_in: CalculationCre
 
 
 @app.delete("/calculations/{calculation_id}")
-async def delete_calculation(calculation_id: int, db: Session = Depends(get_db)):
-    calculation = db.query(Calculation).filter(Calculation.id == calculation_id).first()
+async def delete_calculation(calculation_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    calculation = db.query(Calculation).filter(Calculation.id == calculation_id, Calculation.user_id == current_user.id).first()
     if not calculation:
         raise HTTPException(status_code=404, detail="Calculation not found")
     

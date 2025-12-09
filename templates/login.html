@@ -172,7 +172,7 @@
 
                 if (response.ok) {
                     // Store token
-                    localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('access_token', data.access_token);
                     // Redirect to home or dashboard
                     window.location.href = '/';
                 } else {

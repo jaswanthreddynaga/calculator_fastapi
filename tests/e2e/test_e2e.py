@@ -8,67 +8,90 @@ from playwright.sync_api import expect
 @pytest.mark.e2e
 def test_hello_world(page, fastapi_server):
     """
-    Test that the homepage displays "Hello World".
-
-    This test verifies that when a user navigates to the homepage of the application,
-    the main header (`<h1>`) correctly displays the text "Hello World". This ensures
-    that the server is running and serving the correct template.
+    Test that the homepage redirects to login or displays dashboard if logged in.
     """
     # Navigate the browser to the homepage URL of the FastAPI application.
     page.goto('http://localhost:8000')
     
-    # Use an assertion to check that the text within the first <h1> tag is exactly "Hello World".
-    # If the text does not match, the test will fail.
-    expect(page.locator('h1')).to_have_text('Hello World')
+    # It should redirect to login if not authenticated
+    if "login" in page.url:
+        expect(page.locator("h1")).to_have_text("Login")
+    else:
+        # If somehow authenticated (shouldn't be in fresh context), it shows dashboard
+        expect(page.locator('h1')).to_have_text('Calculator Dashboard')
 
 @pytest.mark.e2e
 def test_calculator_add(page, fastapi_server):
     """
     Test the addition functionality of the calculator.
-
-    This test simulates a user performing an addition operation using the calculator
-    on the frontend. It fills in two numbers, clicks the "Add" button, and verifies
-    that the result displayed is correct.
     """
-    # Navigate the browser to the homepage URL of the FastAPI application.
-    page.goto('http://localhost:8000')
+    # Register and Login first
+    page.goto("http://localhost:8000/register")
+    page.fill("#username", "calc_add_user")
+    page.fill("#email", "add@example.com")
+    page.fill("#password", "password123")
+    page.fill("#confirmPassword", "password123")
+    page.click("button[type='submit']")
+    expect(page.locator("#successMessage")).to_be_visible()
     
+    page.goto("http://localhost:8000/login")
+    page.fill("#email", "add@example.com")
+    page.fill("#password", "password123")
+    page.click("button[type='submit']")
+    expect(page.locator("h1")).to_have_text("Calculator Dashboard")
+
     # Fill in the first number input field (with id 'a') with the value '10'.
     page.fill('#a', '10')
     
     # Fill in the second number input field (with id 'b') with the value '5'.
     page.fill('#b', '5')
     
-    # Click the button that has the exact text "Add". This triggers the addition operation.
-    page.click('button:text("Add")')
+    # Select Add operation (default, but good to be explicit if needed, though default is Add)
+    # page.select_option("#type", "Add")
+
+    # Click the button that has the exact text "Calculate".
+    page.click('#calculateBtn')
     
-    # Use an assertion to check that the text within the result div (with id 'result') is exactly "Result: 15".
-    # This verifies that the addition operation was performed correctly and the result is displayed as expected.
-    expect(page.locator('#result')).to_have_text('Calculation Result: 15')
+    # Use an assertion to check that the result appears in the table
+    # The previous test checked a #result div, but the new UI uses a table.
+    # We need to check the table.
+    page.wait_for_selector("#calculationsTable tbody tr")
+    rows = page.locator("#calculationsTable tbody tr")
+    expect(rows.first.locator("td").nth(4)).to_have_text("15")
 
 @pytest.mark.e2e
 def test_calculator_divide_by_zero(page, fastapi_server):
     """
     Test the divide by zero functionality of the calculator.
-
-    This test simulates a user attempting to divide a number by zero using the calculator.
-    It fills in the numbers, clicks the "Divide" button, and verifies that the appropriate
-    error message is displayed. This ensures that the application correctly handles invalid
-    operations and provides meaningful feedback to the user.
     """
-    # Navigate the browser to the homepage URL of the FastAPI application.
-    page.goto('http://localhost:8000')
+    # Register and Login first
+    page.on("console", lambda msg: print(f"BROWSER CONSOLE: {msg.text}"))
+    page.goto("http://localhost:8000/register")
+    page.fill("#username", "calc_div_user")
+    page.fill("#email", "div@example.com")
+    page.fill("#password", "password123")
+    page.fill("#confirmPassword", "password123")
+    page.click("button[type='submit']")
+    expect(page.locator("#successMessage")).to_be_visible()
     
+    page.goto("http://localhost:8000/login")
+    page.fill("#email", "div@example.com")
+    page.fill("#password", "password123")
+    page.click("button[type='submit']")
+    expect(page.locator("h1")).to_have_text("Calculator Dashboard")
+
     # Fill in the first number input field (with id 'a') with the value '10'.
     page.fill('#a', '10')
     
     # Fill in the second number input field (with id 'b') with the value '0', attempting to divide by zero.
     page.fill('#b', '0')
     
-    # Click the button that has the exact text "Divide". This triggers the division operation.
-    page.click('button:text("Divide")')
+    # Select Divide operation
+    page.select_option("#type", "Divide")
+
+    # Click the button that has the exact text "Calculate".
+    page.click('#calculateBtn')
     
-    # Use an assertion to check that the text within the result div (with id 'result') is exactly
-    # "Error: Cannot divide by zero!". This verifies that the application handles division by zero
-    # gracefully and displays the correct error message to the user.
-    expect(page.locator('#result')).to_have_text('Error: Cannot divide by zero!')
+    # Use an assertion to check that the error message is displayed
+    # The new UI displays error in #message div
+    expect(page.locator('#message')).to_contain_text('Error: Cannot divide by zero')
