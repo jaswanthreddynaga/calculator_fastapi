@@ -60,7 +60,7 @@ def test_create_user_duplicate_username_returns_400(client):
     assert second.status_code == 400
     body = second.json()
     assert "error" in body # Custom exception handler returns "error"
-    assert "already exists" in body["error"]
+    assert "already registered" in body["error"]
 
 
 def test_create_user_invalid_email_returns_400(client): # Custom handler returns 400
