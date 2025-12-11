@@ -8,7 +8,9 @@ import sys
 import os
 
 # Set DATABASE_URL to use SQLite for tests
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+# Use a file-based DB for E2E tests to ensure persistence across subprocess
+test_db_path = os.path.join(os.path.dirname(__file__), "test_e2e.db")
+os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path}"
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -78,6 +80,11 @@ def fastapi_server():
     except subprocess.TimeoutExpired:
         fastapi_process.kill()
     print("FastAPI server has been terminated.")
+    
+    # Clean up test database file
+    if os.path.exists(test_db_path):
+        os.remove(test_db_path)
+        print("Test database file removed.")
 
 # Playwright fixtures - only import when needed for e2e tests
 try:

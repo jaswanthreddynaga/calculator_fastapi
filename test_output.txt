@@ -1,0 +1,150 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.2, pytest-8.3.3, pluggy-1.5.0
+rootdir: /Users/kishorereddy/Desktop/calculator_fastapi
+configfile: pytest.ini
+plugins: cov-6.0.0, pylint-0.21.0, anyio-4.6.2.post1
+collected 1 item
+
+tests/e2e/test_user_profile_e2e.py 2025-12-11 01:41:02 - main - INFO - FastAPI Calculator application starting up...
+INFO:     Started server process [98804]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-12-11 01:41:02 - main - INFO - Serving index page to 127.0.0.1
+INFO:     127.0.0.1:51647 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51648 - "GET /register HTTP/1.1" 200 OK
+Registering user: e2e_profile_user, e2e_profile@example.com
+INFO:     127.0.0.1:51649 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51648 - "POST /users/register HTTP/1.1" 200 OK
+Logging in user: e2e_profile@example.com
+User found: e2e_profile_user, e2e_profile@example.com
+INFO:     127.0.0.1:51649 - "POST /users/login HTTP/1.1" 200 OK
+2025-12-11 01:41:04 - main - INFO - Serving index page to 127.0.0.1
+INFO:     127.0.0.1:51649 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51649 - "GET /calculations HTTP/1.1" 200 OK
+2025-12-11 01:41:04 - main - ERROR - ValidationError on /users/me: user_id: Input should be a valid integer, unable to parse string as an integer
+INFO:     127.0.0.1:51648 - "GET /users/me HTTP/1.1" 400 Bad Request
+2025-12-11 01:41:04 - main - ERROR - ValidationError on /users/me: user_id: Input should be a valid integer, unable to parse string as an integer
+INFO:     127.0.0.1:51648 - "GET /users/me HTTP/1.1" 400 Bad Request
+2025-12-11 01:41:04 - main - ERROR - ValidationError on /users/me: user_id: Input should be a valid integer, unable to parse string as an integer
+INFO:     127.0.0.1:51648 - "GET /users/me HTTP/1.1" 400 Bad Request
+Starting FastAPI server...
+FastAPI server is up and running.
+Current URL before wait: http://127.0.0.1:8000/login
+Browser Console: Fetching profile...
+Browser Console: Failed to load resource: the server responded with a status of 400 (Bad Request)
+Browser Console: Profile response status: 400
+Browser Console: Failed to fetch profile: 400 {"error":"user_id: Input should be a valid integer, unable to parse string as an integer"}
+Browser Console: Fetching profile...
+Browser Console: Failed to load resource: the server responded with a status of 400 (Bad Request)
+Browser Console: Profile response status: 400
+Browser Console: Failed to fetch profile: 400 {"error":"user_id: Input should be a valid integer, unable to parse string as an integer"}
+Browser Console: Test log from test script
+Token in localStorage: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlMmVfcHJvZmlsZV91c2VyIiwiZXhwIjoxNzY1NDM3MDY0fQ.WScxXPowsbIjF4t46Cy8VzpwQlpgrR3oDw-nUY3qk0M
+Browser Console: Fetching profile...
+Browser Console: Failed to load resource: the server responded with a status of 400 (Bad Request)
+Browser Console: Profile response status: 400
+Browser Console: Failed to fetch profile: 400 {"error":"user_id: Input should be a valid integer, unable to parse string as an integer"}
+FINFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [98804]
+Shutting down FastAPI server...
+FastAPI server has been terminated.
+Test database file removed.
+
+
+=================================== FAILURES ===================================
+____________________________ test_user_profile_flow ____________________________
+
+page = <Page url='http://127.0.0.1:8000/'>, fastapi_server = None
+
+    def test_user_profile_flow(page: Page, fastapi_server):
+        page.on("console", lambda msg: print(f"Browser Console: {msg.text}"))
+    
+        # 1. Register and Login
+        page.goto("http://127.0.0.1:8000/register")
+        page.fill("#username", "e2e_profile_user")
+        page.fill("#email", "e2e_profile@example.com")
+        page.fill("#password", "password123")
+        page.fill("#confirmPassword", "password123")
+        page.click("button[type='submit']")
+        expect(page.locator("#successMessage")).to_have_text("Registration successful! Redirecting...")
+    
+        # Manually go to login to avoid flaky redirect wait
+        page.goto("http://127.0.0.1:8000/login")
+        page.fill("#email", "e2e_profile@example.com")
+        page.fill("#password", "password123")
+        page.click("button[type='submit']")
+    
+        # Check for login error
+        if page.locator("#serverError").is_visible():
+            print(f"Login failed: {page.locator('#serverError').inner_text()}")
+    
+        print(f"Current URL before wait: {page.url}")
+    
+        # Wait for navigation to dashboard
+        try:
+            page.wait_for_url("http://127.0.0.1:8000/", timeout=10000)
+        except Exception as e:
+            print(f"Timeout waiting for URL. Current URL: {page.url}")
+            # Check if we are on dashboard but URL is different (e.g. trailing slash)
+            if page.title() == "Calculator Dashboard":
+                print("Title matches, proceeding.")
+            else:
+                raise e
+    
+        expect(page).to_have_title("Calculator Dashboard")
+    
+        # 2. Open Profile
+        page.click("text=Profile")
+        expect(page.locator("#profileSection")).to_be_visible()
+    
+        # Verify console logging works
+        page.evaluate("console.log('Test log from test script')")
+    
+        # Check token
+        token = page.evaluate("localStorage.getItem('access_token')")
+        assert token, "Token is missing from localStorage"
+        print(f"Token in localStorage: {token}")
+    
+        # Check if fetchProfile exists
+        is_defined = page.evaluate("typeof fetchProfile === 'function'")
+        assert is_defined, "fetchProfile function is not defined"
+    
+        # Manually call fetchProfile and see if it works
+        page.evaluate("fetchProfile()")
+    
+        # Wait a bit
+        page.wait_for_timeout(2000)
+    
+        # Check profile message
+        msg = page.locator("#profileMessage").inner_text()
+        assert msg != "Fetching...", "Fetch profile hung (still Fetching...)"
+>       assert "Error" not in msg, f"Fetch profile failed: {msg}"
+E       AssertionError: Fetch profile failed: Error fetching profile: 400
+E       assert 'Error' not in 'Error fetch...profile: 400'
+E         
+E         'Error' is contained here:
+E           Error fetching profile: 400
+E         ? +++++
+
+tests/e2e/test_user_profile_e2e.py:66: AssertionError
+
+---------- coverage: platform darwin, python 3.13.2-final-0 ----------
+Name                         Stmts   Miss  Cover   Missing
+----------------------------------------------------------
+app/calculation_factory.py      31     31     0%   1-38
+app/database.py                 15      4    73%   22-26
+app/models.py                   21     21     0%   1-30
+app/operations.py               27     27     0%   21-137
+app/operations/__init__.py      15     15     0%   12-33
+app/schemas.py                  49     49     0%   1-75
+app/security.py                 39     39     0%   1-57
+----------------------------------------------------------
+TOTAL                          197    186     6%
+Coverage HTML written to dir htmlcov
+
+=========================== short test summary info ============================
+FAILED tests/e2e/test_user_profile_e2e.py::test_user_profile_flow - Assertion...
+============================== 1 failed in 5.36s ===============================

@@ -240,6 +240,9 @@ playwright install chromium
 
 # Then run e2e tests
 pytest tests/e2e/ -v
+
+# Run specific E2E test for user profile
+pytest tests/e2e/test_user_profile_e2e.py -v
 ```
 
 ## Frontend Application
@@ -258,6 +261,7 @@ The application includes a frontend for user registration and login.
 
 ### Features
 - **Client-Side Validation**: Forms check for valid email formats and password length.
+- **User Profile Management**: Update username, email, and change password.
 - **JWT Authentication**: Successful login stores a JWT token for secure access.
 - **Responsive Design**: Modern, dark-themed UI.
 

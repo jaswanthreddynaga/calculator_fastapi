@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.operations import add, subtract, multiply, divide  # Ensure correct import path
 from app.database import Base, engine, get_db
 from app.models import User, Calculation
-from app.schemas import UserCreate, UserRead, CalculationCreate, CalculationRead, Token, UserLogin
+from app.schemas import UserCreate, UserRead, CalculationCreate, CalculationRead, Token, UserLogin, UserUpdate, PasswordChange
 from app.security import hash_password, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 from datetime import timedelta
 import uvicorn
@@ -158,7 +158,7 @@ async def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
         db.refresh(user)
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Username or email already exists")
+        raise HTTPException(status_code=400, detail="Username or email already registered")
     return user
 
 
@@ -175,15 +175,20 @@ async def login_page(request: Request):
 @app.post("/users/login", response_model=Token)
 async def login_user(user_in: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_in.email).first()
+    
     if not user or not verify_password(user_in.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+
+@app.get("/users/me", response_model=UserRead)
+async def read_user_me(current_user: User = Depends(get_current_user)):
+    return current_user
 
 @app.get("/users/{user_id}", response_model=UserRead)
 async def read_user(user_id: int, db: Session = Depends(get_db)):
@@ -191,6 +196,40 @@ async def read_user(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+@app.put("/users/me", response_model=UserRead)
+async def update_user_me(user_update: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if user_update.username:
+        # Check if username already exists
+        existing_user = db.query(User).filter(User.username == user_update.username).first()
+        if existing_user and existing_user.id != current_user.id:
+            raise HTTPException(status_code=400, detail="Username already taken")
+        current_user.username = user_update.username
+    
+    if user_update.email:
+        # Check if email already exists
+        existing_user = db.query(User).filter(User.email == user_update.email).first()
+        if existing_user and existing_user.id != current_user.id:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        current_user.email = user_update.email
+    
+    try:
+        db.commit()
+        db.refresh(current_user)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Update failed")
+    
+    return current_user
+
+@app.post("/users/me/password")
+async def change_password(password_change: PasswordChange, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not verify_password(password_change.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+    
+    current_user.password_hash = hash_password(password_change.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
 
 @app.get("/calculations", response_model=list[CalculationRead])
 async def read_calculations(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

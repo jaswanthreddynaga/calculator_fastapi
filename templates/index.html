@@ -117,54 +117,79 @@
     <div class="container">
         <div class="auth-buttons">
             <span id="userInfo"></span>
+            <button onclick="toggleProfile()">Profile</button>
             <button onclick="logout()">Logout</button>
         </div>
 
         <h1>Calculator Dashboard</h1>
 
-        <div id="addCalculationForm">
-            <h2>Add Calculation</h2>
+        <div id="profileSection" class="hidden">
+            <h2>User Profile</h2>
             <div class="form-group">
-                <label for="a">Number A:</label>
-                <input type="number" id="a" required>
+                <h3>Update Profile</h3>
+                <label for="profileUsername">Username:</label>
+                <input type="text" id="profileUsername">
+                <label for="profileEmail">Email:</label>
+                <input type="email" id="profileEmail">
+                <button onclick="updateProfile()">Update Profile</button>
             </div>
             <div class="form-group">
-                <label for="b">Number B:</label>
-                <input type="number" id="b" required>
+                <h3>Change Password</h3>
+                <label for="currentPassword">Current Password:</label>
+                <input type="password" id="currentPassword">
+                <label for="newPassword">New Password:</label>
+                <input type="password" id="newPassword">
+                <button onclick="changePassword()">Change Password</button>
             </div>
-            <div class="form-group">
-                <label for="type">Operation:</label>
-                <select id="type">
-                    <option value="Add">Add</option>
-                    <option value="Subtract">Subtract</option>
-                    <option value="Multiply">Multiply</option>
-                    <option value="Divide">Divide</option>
-                </select>
-            </div>
-            <button id="calculateBtn" onclick="addCalculation()">Calculate</button>
-            <button id="updateBtn" class="hidden" onclick="submitUpdate()">Update</button>
-            <button id="cancelBtn" class="hidden" onclick="cancelEdit()"
-                style="background-color: #6c757d;">Cancel</button>
+            <button onclick="toggleProfile()" style="background-color: #6c757d;">Close Profile</button>
+            <div id="profileMessage" style="margin-top: 10px; font-weight: bold;"></div>
         </div>
 
-        <div id="message"></div>
+        <div id="dashboardSection">
+            <div id="addCalculationForm">
+                <h2>Add Calculation</h2>
+                <div class="form-group">
+                    <label for="a">Number A:</label>
+                    <input type="number" id="a" required>
+                </div>
+                <div class="form-group">
+                    <label for="b">Number B:</label>
+                    <input type="number" id="b" required>
+                </div>
+                <div class="form-group">
+                    <label for="type">Operation:</label>
+                    <select id="type">
+                        <option value="Add">Add</option>
+                        <option value="Subtract">Subtract</option>
+                        <option value="Multiply">Multiply</option>
+                        <option value="Divide">Divide</option>
+                    </select>
+                </div>
+                <button id="calculateBtn" onclick="addCalculation()">Calculate</button>
+                <button id="updateBtn" class="hidden" onclick="submitUpdate()">Update</button>
+                <button id="cancelBtn" class="hidden" onclick="cancelEdit()"
+                    style="background-color: #6c757d;">Cancel</button>
+            </div>
 
-        <h2>History</h2>
-        <table id="calculationsTable">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>A</th>
-                    <th>B</th>
-                    <th>Type</th>
-                    <th>Result</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Calculations will be inserted here -->
-            </tbody>
-        </table>
+            <div id="message"></div>
+
+            <h2>History</h2>
+            <table id="calculationsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>Type</th>
+                        <th>Result</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Calculations will be inserted here -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
@@ -206,7 +231,6 @@
         }
 
         async function addCalculation() {
-            console.log("addCalculation called");
             try {
                 const a = document.getElementById('a').value;
                 const b = document.getElementById('b').value;
@@ -315,6 +339,102 @@
 
         // Initial load
         fetchCalculations();
+        fetchProfile();
+
+        function toggleProfile() {
+            const profileSection = document.getElementById('profileSection');
+            const dashboardSection = document.getElementById('dashboardSection');
+            if (profileSection.classList.contains('hidden')) {
+                profileSection.classList.remove('hidden');
+                dashboardSection.classList.add('hidden');
+                fetchProfile(); // Refresh data
+            } else {
+                profileSection.classList.add('hidden');
+                dashboardSection.classList.remove('hidden');
+                document.getElementById('profileMessage').innerText = '';
+            }
+        }
+
+        async function fetchProfile() {
+            try {
+                const response = await fetch('/users/me', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                if (response.ok) {
+                    const user = await response.json();
+                    document.getElementById('profileUsername').value = user.username;
+                    document.getElementById('profileEmail').value = user.email;
+                    document.getElementById('userInfo').innerText = 'Logged in as: ' + user.username;
+                    document.getElementById('profileMessage').innerText = ''; // Clear fetching message
+                } else {
+                    const errorText = await response.text();
+                    console.error("Failed to fetch profile:", response.status, errorText);
+                    document.getElementById('profileMessage').innerText = 'Error fetching profile: ' + response.status;
+                    document.getElementById('profileMessage').style.color = 'red';
+                }
+            } catch (error) {
+                console.error("Error fetching profile:", error);
+            }
+        }
+
+        async function updateProfile() {
+            const username = document.getElementById('profileUsername').value;
+            const email = document.getElementById('profileEmail').value;
+
+            const body = {};
+            if (username) body.username = username;
+            if (email) body.email = email;
+
+            const response = await fetch('/users/me', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify(body)
+            });
+
+            const messageEl = document.getElementById('profileMessage');
+            if (response.ok) {
+                const user = await response.json();
+                messageEl.innerText = 'Profile updated successfully!';
+                messageEl.style.color = 'green';
+                // Update displayed username if changed
+                document.getElementById('userInfo').innerText = 'Logged in as: ' + user.username;
+            } else {
+                const data = await response.json();
+                messageEl.innerText = 'Error: ' + (data.error || data.detail);
+                messageEl.style.color = 'red';
+            }
+        }
+
+        async function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+
+            const response = await fetch('/users/me/password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+            });
+
+            const messageEl = document.getElementById('profileMessage');
+            if (response.ok) {
+                messageEl.innerText = 'Password changed successfully!';
+                messageEl.style.color = 'green';
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+            } else {
+                const data = await response.json();
+                messageEl.innerText = 'Error: ' + (data.error || data.detail);
+                messageEl.style.color = 'red';
+            }
+        }
     </script>
 
 </body>
